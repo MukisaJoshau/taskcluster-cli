@@ -8,7 +8,7 @@ import (
 // the top of the command tree
 // name of the command isn't important as we don't parse the first argv
 var (
-    root = NewCommand("root")
+    root = NewCommand(os.Args[0])
 )
 
 // Root returns the root Command
@@ -18,19 +18,66 @@ func Root() *Command {
 
 // Run starts the parser and the execution of sub*commands
 func Run() bool {
-    var command *Command
-    var step int
+    var command, final *Command
+    var context *Context
+    var err error
+    step := 0
 
     for {
-        command, context := Parse(command, os.Args, &step)
-        if command == nil && context == nil {
+        // start by parsing
+        final = command
+        command, context, err = Parse(command, os.Args, &step)
+
+        // on error, display usage
+        if err != nil {
+            fmt.Fprintf(os.Stderr, "error: %s\n", err)
+
+            var usage string
+            if command == nil {
+                usage = Root().Usage()
+            } else {
+                usage = command.Usage()
+            }
+            fmt.Fprintf(os.Stderr, "%s", usage)
+
+            return false
+
+        // else stop parsing, we done here
+        } else if command == nil && context == nil {
             break
         }
 
-        // other things
+        // try to run Common from the CommandProvider of the parsed command
+        if command.provider != nil {
+            ok := command.provider.Common(context)
+            if !ok {
+                return false
+            }
+        }
     }
 
-    fmt.Printf("Soon we shall be running!\n")
+    // run Execute from the final command
+    if final.provider != nil {
+        ok := final.provider.Execute(context)
+        if !ok {
+            return false
+        }
+    }
 
     return true
 }
+
+/*
+fmt.Printf("Command: %s\nFlags:\n", command.name)
+for flag, _ := range context.Flags {
+    fmt.Printf("\t%s\n", flag)
+}
+fmt.Printf("Options:\n")
+for opt, val := range context.Options {
+    fmt.Printf("\t%s: %s\n", opt, val)
+}
+fmt.Printf("Arguments:\n")
+for arg, val := range context.Arguments {
+    fmt.Printf("\t%s: %s\n", arg, val)
+}
+*/

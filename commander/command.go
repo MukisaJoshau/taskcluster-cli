@@ -14,7 +14,7 @@ type Command struct {
     arguments   []*ArgumentDescriptor
     options     map[string]string // maps name -> description
     flags       map[string]string
-    provider    *CommandLogic
+    provider    CommandProvider
 }
 
 // NewCommand creates a new Command object with the specified name
@@ -68,14 +68,14 @@ func (this *Command) Get(name string) *Command {
     return cmd
 }
 
-// Register registers a CommandLogic for the current Command
-func (this *Command) Register(prov *CommandLogic) *Command {
+// Register registers a CommandProvider for the current Command
+func (this *Command) Register(prov CommandProvider) *Command {
     this.provider = prov
     return this
 }
 
-// Provider returns the CommandLogic associated to the current Command
-func (this *Command) Provider() *CommandLogic {
+// Provider returns the CommandProvider associated to the current Command
+func (this *Command) Provider() CommandProvider {
     return this.provider
 }
 
